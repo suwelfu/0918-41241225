@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪刀石頭布遊戲</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 22px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s, background-color 0.3s;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: scale(1.1);
+            background-color: #ffcc80;
+        }
+        button:nth-child(1) {
+            background-color: #ff6f61;
+        }
+        button:nth-child(2) {
+            background-color: #4db6ac;
+        }
+        button:nth-child(3) {
+            background-color: #ffd54f;
+        }
+        #result {
+            margin-top: 30px;
+            font-size: 26px;
+            font-weight: bold;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        /* 計分顯示 */
+        #score {
+            margin-top: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+        }
+        /* 動態效果 */
+        .win {
+            color: #4CAF50;
+            animation: bounce 0.5s ease-in-out;
+        }
+        .lose {
+            color: #F44336;
+            animation: shake 0.5s ease-in-out;
+        }
+        .draw {
+            color: #FFC107;
+            animation: pulse 0.5s ease-in-out;
+        }
+        /* 煙火 */
+        .firework {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: transparent;
+            border-radius: 50%;
+            box-shadow: 
+                0 -50px 20px #ff6347,
+                50px -25px 20px #ffd700,
+                50px 25px 20px #adff2f,
+                0 50px 20px #1e90ff,
+                -50px 25px 20px #ee82ee,
+                -50px -25px 20px #ff1493;
+            animation: firework 1.5s ease-in-out forwards, explode 1.5s ease-in-out;
+        }
+        @keyframes firework {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+        @keyframes explode {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        /* 哭臉 */
+        #cryFace {
+            font-size: 60px;
+            color: #F44336;
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <h1>剪刀石頭布遊戲</h1>
+
+    <!-- 剪刀石頭布按鈕 -->
+    <button onclick="playGame('剪刀')">✌️ 剪刀</button>
+    <button onclick="playGame('石頭')">✊ 石頭</button>
+    <button onclick="playGame('布')">🖐️ 布</button>
+
+    <!-- 顯示結果 -->
+    <div id="result"></div>
+
+    <!-- 顯示計分 -->
+    <div id="score">玩家: 0 | 電腦: 0</div>
+
+    <!-- 煙火容器 -->
+    <div id="fireworks-container"></div>
+
+    <!-- 哭臉容器 -->
+    <div id="cryFaceContainer"></div>
+
+    <!-- 音效 -->
+    <audio id="winSound" src="win.mp3"></audio>
+    <audio id="loseSound" src="lose.mp3"></audio>
+    <audio id="drawSound" src="draw.mp3"></audio>
+
+    <script>
+        let playerWins = 0;
+        let computerWins = 0;
+        const maxWins = 3;  // 設定需要的勝利次數
+
+        function playGame(playerChoice) {
+            const choices = ['剪刀', '石頭', '布'];
+            const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+            let result = '';
+            let resultClass = '';
+
+            // 清除之前的煙火效果和哭臉
+            const fireworksContainer = document.getElementById('fireworks-container');
+            fireworksContainer.innerHTML = '';
+            const cryFaceContainer = document.getElementById('cryFaceContainer');
+            cryFaceContainer.innerHTML = '';
+
+            if (playerChoice === computerChoice) {
+                result = '平手!';
+                resultClass = 'draw';
+                playSound('drawSound');
+            } else if (
+                (playerChoice === '剪刀' && computerChoice === '布') ||
+                (playerChoice === '石頭' && computerChoice === '剪刀') ||
+                (playerChoice === '布' && computerChoice === '石頭')
+            ) {
+                result = '你贏了!';
+                resultClass = 'win';
+                playerWins++;
+                playSound('winSound');
+                launchFireworks();
+            } else {
+                result = '你輸了!';
+                resultClass = 'lose';
+                computerWins++;
+                playSound('loseSound');
+                showCryFace();
+            }
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                你選擇了: ${playerChoice} <br>
+                電腦選擇了: ${computerChoice} <br>
+                ${result}
+            `;
+
+            // 更新計分
+            updateScore();
+
+            // 判斷是否有玩家達到 3 次勝利
+            if (playerWins === maxWins) {
+                alert('你獲勝了！遊戲將重新開始。');
+                resetGame();
+            } else if (computerWins === maxWins) {
+                alert('電腦獲勝了！遊戲將重新開始。');
+                resetGame();
+            }
+
+            // 移除之前的動畫 class，然後添加新的動畫 class
+            resultDiv.classList.remove('win', 'lose', 'draw');
+            void resultDiv.offsetWidth;  // 強制重繪以確保動畫能正確運行
+            resultDiv.classList.add(resultClass);
+        }
+
+        function updateScore() {
+            const scoreDiv = document.getElementById('score');
+            scoreDiv.innerHTML = `玩家: ${playerWins} | 電腦: ${computerWins}`;
+        }
+
+        function resetGame() {
+            playerWins = 0;
+            computerWins = 0;
+            updateScore();
+            document.getElementById('result').innerHTML = '';  // 清除結果顯示
+        }
+
+        function launchFireworks() {
+            const fireworksContainer = document.getElementById('fireworks-container');
+
+            // 創建多個煙火效果
+            for (let i = 0; i < 8; i++) {  // 增加煙火的數量
+                const firework = document.createElement('div');
+                firework.classList.add('firework');
+                
+                // 隨機位置與延遲
+                firework.style.top = `${Math.random() * 80}vh`;
+                firework.style.left = `${Math.random() * 80}vw`;
+                firework.style.animationDelay = `${Math.random() * 0.5}s`;
+                
+                fireworksContainer.appendChild(firework);
+
+                // 煙火效果自動移除
+                setTimeout(() => {
+                    firework.remove();
+                }, 1500);  // 延長煙火效果時間
+            }
+        }
+
+        function showCryFace() {
+            const cryFaceContainer = document.getElementById('cryFaceContainer');
+            cryFaceContainer.innerHTML = '<div id="cryFace">😭</div>';  // 顯示哭臉
+        }
+
+        function playSound(soundId) {
+            const sound = document.getElementById(soundId);
+            sound.play();
+        }
+    </script>
+</body>
+</html>
